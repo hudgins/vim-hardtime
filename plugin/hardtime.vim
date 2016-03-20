@@ -7,16 +7,26 @@ if exists("g:HardTime_loaded")
     finish
 endif
 let g:HardTime_loaded = 1
+let g:HardTime_HP_max = 100
+let g:HardTime_HP_current = 100
+let g:HardTime_HP_WARNING = "yellow"
+let g:HardTime_HP_CRITIAL = "red"
+let g:HardTime_HP_OKAY    = "italic"
+let g:HardTime_HP_FULL    = "green"
+let g:HardTime_HP_state   = "green"
 
 fun! s:check_defined(variable, default)
-	if !exists(a:variable)
-		let {a:variable} = a:default
-	endif
+    if !exists(a:variable)
+        let {a:variable} = a:default
+    endif
 endf
 
-call s:check_defined("g:list_of_visual_keys", ["h", "j", "k", "l", "-", "+", "<UP>", "<DOWN>", "<LEFT>", "<RIGHT>"])
-call s:check_defined("g:list_of_normal_keys", ["h", "j", "k", "l", "-", "+", "<UP>", "<DOWN>", "<LEFT>", "<RIGHT>"])
-call s:check_defined("g:list_of_insert_keys", ["<UP>", "<DOWN>", "<LEFT>", "<RIGHT>"])
+call s:check_defined("g:list_of_good_visual_keys", ["0", "^", "B", "b", "w", "W", "$", "{", "}"])
+call s:check_defined("g:list_of_good_normal_keys", ["0", "^", "B", "b", "w", "W", "$", "{", "}"])
+call s:check_defined("g:list_of_good_insert_keys", [])
+call s:check_defined("g:list_of_bad_visual_keys", ["h", "j", "k", "l", "-", "+", "<UP>", "<DOWN>", "<LEFT>", "<RIGHT>"])
+call s:check_defined("g:list_of_bad_normal_keys", ["h", "j", "k", "l", "-", "+", "<UP>", "<DOWN>", "<LEFT>", "<RIGHT>"])
+call s:check_defined("g:list_of_bad_insert_keys", ["<UP>", "<DOWN>", "<LEFT>", "<RIGHT>"])
 call s:check_defined("g:list_of_disabled_keys", [])
 
 call s:check_defined("g:hardtime_default_on", 0)
@@ -29,7 +39,7 @@ call s:check_defined("g:hardtime_maxcount", 1)
 
 " Start hardtime in every buffer
 if g:hardtime_default_on
-	autocmd BufRead,BufNewFile * call s:HardTime()
+    autocmd BufRead,BufNewFile * call s:HardTime()
 endif
 
 let s:lasttime = 0
@@ -45,18 +55,27 @@ fun! s:HardTime()
 endf
 
 fun! HardTimeOn()
-	call s:check_defined("b:hardtime_on", 0)
+    call s:check_defined("b:hardtime_on", 0)
     " Prevents from mapping keys recursively
     if b:hardtime_on == 0
         let b:hardtime_on = 1
-        for i in g:list_of_normal_keys
-            exec "nnoremap <buffer> <silent> <expr> " . i . " TryKey('" . i . "') ? '" . (maparg(i, "n") != "" ? maparg(i, "n") : i) . "' : TooSoon()"
+        for i in g:list_of_good_normal_keys
+            exec "nnoremap <buffer> <silent> <expr> " . i . " RewardKey('" . i . "') ? '" . (maparg(i, "n") != "" ? maparg(i, "n") : i) . "' : TooSoon()"
         endfor
-        for i in g:list_of_visual_keys
-            exec "xnoremap <buffer> <silent> <expr> " . i . " TryKey('" . i . "') ? '" . (maparg(i, "v") != "" ? maparg(i, "v") : i) . "' : TooSoon()"
+        for i in g:list_of_good_visual_keys
+            exec "xnoremap <buffer> <silent> <expr> " . i . " RewardKey('" . i . "') ? '" . (maparg(i, "v") != "" ? maparg(i, "v") : i) . "' : TooSoon()"
         endfor
-        for i in g:list_of_insert_keys
-            exec "inoremap <buffer> <silent> <expr> " . i . " TryKey('" . i . "') ? '" . (maparg(i, "i") != "" ? maparg(i, "i") : i) . "' : TooSoon()"
+        for i in g:list_of_good_insert_keys
+            exec "inoremap <buffer> <silent> <expr> " . i . " RewardKey('" . i . "') ? '" . (maparg(i, "i") != "" ? maparg(i, "i") : i) . "' : TooSoon()"
+        endfor
+        for i in g:list_of_bad_normal_keys
+            exec "nnoremap <buffer> <silent> <expr> " . i . " PunishKey('" . i . "') ? '" . (maparg(i, "n") != "" ? maparg(i, "n") : i) . "' : TooSoon()"
+        endfor
+        for i in g:list_of_bad_visual_keys
+            exec "xnoremap <buffer> <silent> <expr> " . i . " PunishKey('" . i . "') ? '" . (maparg(i, "v") != "" ? maparg(i, "v") : i) . "' : TooSoon()"
+        endfor
+        for i in g:list_of_bad_insert_keys
+            exec "inoremap <buffer> <silent> <expr> " . i . " PunishKey('" . i . "') ? '" . (maparg(i, "i") != "" ? maparg(i, "i") : i) . "' : TooSoon()"
         endfor
         for i in g:list_of_disabled_keys
             exec "nnoremap <buffer> <silent> " . i . " <nop>"
@@ -68,13 +87,22 @@ endf
 
 fun! HardTimeOff()
     let b:hardtime_on = 0
-    for i in g:list_of_normal_keys
+    for i in g:list_of_good_normal_keys
         exec "silent! nunmap <buffer> " . i
     endfor
-    for i in g:list_of_visual_keys
+    for i in g:list_of_good_visual_keys
         exec "silent! vunmap <buffer> " . i
     endfor
-    for i in g:list_of_insert_keys
+    for i in g:list_of_good_insert_keys
+        exec "silent! iunmap <buffer> " . i
+    endfor
+    for i in g:list_of_bad_normal_keys
+        exec "silent! nunmap <buffer> " . i
+    endfor
+    for i in g:list_of_bad_visual_keys
+        exec "silent! vunmap <buffer> " . i
+    endfor
+    for i in g:list_of_bad_insert_keys
         exec "silent! iunmap <buffer> " . i
     endfor
     for i in g:list_of_disabled_keys
@@ -86,12 +114,12 @@ endf
 
 
 fun! HardTimeToggle()
-	call s:check_defined("b:hardtime_on", 0)
+    call s:check_defined("b:hardtime_on", 0)
     if b:hardtime_on
         call HardTimeOff()
-		if g:hardtime_showmsg
-			echo "Hard time off"
-		endif
+        if g:hardtime_showmsg
+            echo "Hard time off"
+        endif
     else
         call HardTimeOn()
         if g:hardtime_showmsg
@@ -100,8 +128,38 @@ fun! HardTimeToggle()
     endif
 endf
 
+" fun! TryKey(key)
+"     let now = GetNow()
+"     if (now > s:lasttime + g:hardtime_timeout/1000) || (g:hardtime_allow_different_key && a:key != s:lastkey) ||
+"     \ (s:lastcount < g:hardtime_maxcount)
+"         if (now > s:lasttime + g:hardtime_timeout/1000) || (g:hardtime_allow_different_key && a:key != s:lastkey)
+"             let s:lastcount = 1
+"         else
+"             let s:lastcount += 1
+"         endif
+"         let s:lasttime = now
+"         let s:lastkey = a:key
+"         let g:HardTime_HP_current += 1
+"         if (g:HardTime_HP_current > g:HardTime_HP_max)
+"             let g:HardTime_HP_max = g:HardTime_HP_current
+"         endif
+"         return 1
+"     else
+"         let g:HardTime_HP_current -= 1
+"         return 1
+"     endif
+" endf
 
-fun! TryKey(key)
+fun! UpdateState()
+    if (g:HardTime_HP_current < g:HardTime_HP_max/2)
+        let g:airline_section_b = '%#__accent_red#%{g:HardTime_HP_current}%#__restore__#/%{g:HardTime_HP_max}'
+    else
+        let g:airline_section_b = '%{g:HardTime_HP_current}%#__restore__#/%{g:HardTime_HP_max}'
+    endif
+    return 0
+endf
+
+fun! RewardKey(key)
     let now = GetNow()
     if (now > s:lasttime + g:hardtime_timeout/1000) || (g:hardtime_allow_different_key && a:key != s:lastkey) ||
     \ (s:lastcount < g:hardtime_maxcount)
@@ -112,10 +170,19 @@ fun! TryKey(key)
         endif
         let s:lasttime = now
         let s:lastkey = a:key
-        return 1
-    else
-        return 0
+        let g:HardTime_HP_current += 1
+        if (g:HardTime_HP_current > g:HardTime_HP_max)
+            let g:HardTime_HP_max = g:HardTime_HP_current
+        endif
+        " let s = UpdateState()
     endif
+    return 1
+endf
+
+fun! PunishKey(key)
+    let g:HardTime_HP_current -= 1
+    " let s = UpdateState()
+    return 1
 endf
 
 fun! s:IsIgnoreBuffer()
